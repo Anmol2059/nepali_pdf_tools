@@ -9,10 +9,11 @@ output_base_dir = "Output"
 if not os.path.exists(output_base_dir):
     os.makedirs(output_base_dir)
 
-def make_nepali_corpus(text, output_path):
+def save_verified_text(text, page_num, output_path):
+    """Save verified text with page number marker"""
     text = text.replace("|", '।')  # Replace '|' with the Nepali danda (।)
     with open(output_path, 'a', encoding="utf-8") as output_file:
-        output_file.write(text + "\n")
+        output_file.write(f"[Page {page_num + 1}]\n{text}\n\n")
 
 st.title("Nepali Corpus Maker - Manual Review for Scanned PDFs")
 
@@ -46,58 +47,66 @@ if uploaded_file:
         page.save(img_path)
         page_images.append(img_path)
 
-    # Initialize session state for page navigation and text storage
+    # Initialize session state for page tracking
     if "current_page" not in st.session_state:
         st.session_state.current_page = 0
-    if "page_texts" not in st.session_state:
-        st.session_state.page_texts = [""] * total_pages  # Store texts for all pages
+    if "verified_pages" not in st.session_state:
+        st.session_state.verified_pages = set()
 
-    # Get the current page
     current_page = st.session_state.current_page
-    current_image = page_images[current_page]
 
-    # Perform OCR on the current page if text is not already edited
-    if not st.session_state.page_texts[current_page]:
-        extracted_text = pytesseract.image_to_string(Image.open(current_image), lang='nep+eng')
-        st.session_state.page_texts[current_page] = extracted_text
+    # Only proceed if we haven't finished all pages
+    if current_page < total_pages:
+        current_image = page_images[current_page]
+        
+        # Display page number and progress
+        st.write(f"Currently editing page {current_page + 1} of {total_pages}")
+        st.progress((len(st.session_state.verified_pages)) / total_pages)
 
-    # Layout for side-by-side display
-    col1, col2 = st.columns([3, 2])  # More space to the image (3:2 ratio)
+        # Layout for side-by-side display
+        col1, col2 = st.columns([3, 2])
 
-    # Display page image on the left
-    with col1:
-        st.image(current_image, caption=f"Page {current_page + 1}", use_container_width=True)
+        # Display page image on the left
+        with col1:
+            st.image(current_image, caption=f"Page {current_page + 1}", use_container_width=True)
 
-    # Editable text area on the right
-    with col2:
-        st.text_area(
-            "Edit OCR Text",
-            value=st.session_state.page_texts[current_page],
-            height=500,
-            key="text_area",
-            on_change=lambda: st.session_state.page_texts.__setitem__(current_page, st.session_state.text_area),
-        )
+        # Perform OCR and show editable text on the right
+        with col2:
+            # Only perform OCR if we haven't stored the text yet
+            if f"ocr_text_{current_page}" not in st.session_state:
+                extracted_text = pytesseract.image_to_string(Image.open(current_image), lang='nep+eng')
+                st.session_state[f"ocr_text_{current_page}"] = extracted_text
 
-    # Save current page's text automatically when navigating
-    corpus_output_path = os.path.join(file_output_dir, f"{pdf_name}_corpus.txt")
+            # Editable text area
+            edited_text = st.text_area(
+                "Edit OCR Text",
+                value=st.session_state[f"ocr_text_{current_page}"],
+                height=500,
+                key=f"text_area_{current_page}"
+            )
+            
+            # Save and continue button
+            corpus_output_path = os.path.join(file_output_dir, f"{pdf_name}_corpus.txt")
+            if st.button("Verify, Save and Continue to Next Page"):
+                save_verified_text(edited_text, current_page, corpus_output_path)
+                st.session_state.verified_pages.add(current_page)
+                st.session_state.current_page += 1
+                st.rerun()
 
-    # Navigation buttons
-    col_nav1, col_nav2 = st.columns(2)
-    with col_nav1:
-        if st.button("Previous Page") and current_page > 0:
-            # Save the current page's text
-            make_nepali_corpus(st.session_state.page_texts[current_page], corpus_output_path)
-            # Move to the previous page
-            st.session_state.current_page -= 1
-    with col_nav2:
-        if st.button("Next Page") and current_page < total_pages - 1:
-            # Save the current page's text
-            make_nepali_corpus(st.session_state.page_texts[current_page], corpus_output_path)
-            # Move to the next page
-            st.session_state.current_page += 1
+        # Show verification progress
+        verified_count = len(st.session_state.verified_pages)
+        st.write(f"Progress: {verified_count}/{total_pages} pages verified")
 
-    # Display completion message
-    if current_page == total_pages - 1:
-        st.write(f"Corpus generation complete. File saved at `{corpus_output_path}`.")
+    # Show completion message when all pages are done
+    else:
+        st.success(f"🎉 All {total_pages} pages have been verified and saved!")
+        st.write(f"Complete corpus saved at: {os.path.join(file_output_dir, f'{pdf_name}_corpus.txt')}")
+        
+        # Option to start over
+        if st.button("Start Over"):
+            st.session_state.current_page = 0
+            st.session_state.verified_pages = set()
+            st.rerun()
+
 else:
     st.write("Please upload a PDF file to start the process.")
