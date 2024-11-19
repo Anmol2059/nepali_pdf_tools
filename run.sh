@@ -1,23 +1,25 @@
 #!/bin/bash
 
-echo "Creating a new Conda environment named 'pdf_processing_env'..."
-conda create -n pdf_processing_env python=3.9 -y
+# Environment name
+ENV_NAME="pdf_extraction"
+YML_FILE="environment.yml"
 
-echo "Activating the environment..."
-source activate pdf_processing_env
-
-echo "Installing required packages..."
-pip install streamlit pytesseract pdf2image pillow pymupdf tqdm
-
-echo "Setting up pdf2image dependencies..."
-if conda install -c conda-forge poppler -y; then
-    echo "Poppler installed successfully via Conda."
-elif command -v sudo &> /dev/null; then
-    echo "Conda installation of Poppler failed. Trying with sudo apt-get..."
-    sudo apt-get update && sudo apt-get install -y poppler-utils && echo "Poppler installed successfully via apt-get."
+# Check if the environment already exists
+if conda info --envs | grep -q "^$ENV_NAME"; then
+    echo "Environment '$ENV_NAME' already exists. Activating it..."
+    conda activate "$ENV_NAME"
 else
-    echo "Poppler installation skipped. Neither Conda nor sudo apt-get were successful."
+    echo "Environment '$ENV_NAME' not found. Creating it from $YML_FILE..."
+    if [ -f "$YML_FILE" ]; then
+        conda env create -f "$YML_FILE"
+        echo "Environment '$ENV_NAME' created successfully. Activating it..."
+        conda activate "$ENV_NAME"
+    else
+        echo "Error: $YML_FILE not found. Please ensure the file exists in the current directory."
+        exit 1
+    fi
 fi
 
-echo "Starting Streamlit app..."
-streamlit run app.py
+# Run your application or script here
+echo "Environment is active. Running the application..."
+streamlit run app.py  # Replace 'app.py' with your Python script if different
