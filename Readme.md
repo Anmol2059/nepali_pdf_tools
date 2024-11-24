@@ -1,33 +1,63 @@
-# Nepali PDF Tools
 
-An interactive tool for processing Nepali PDF files, built with Streamlit, Tesseract OCR, and other PDF manipulation libraries.
 
-## Features
-- Removes images from PDFs.
-- Converts PDF pages to images.
-- Extracts text with OCR and creates a Nepali corpus.
-- Deletes intermediate images after processing.
+# For Translation follow these:
 
 ## Installation
-
-### 1. Clone the Repository
 ```bash
-git clone https://github.com/Anmol2059/nepali_pdf_tools.git
-cd nepali_pdf_tools
+git clone https://github.com/AI4Bharat/IndicTrans2
+cd IndicTrans2
+source install.sh
+
 ```
 
-### 2. Make run.sh executable and run
+## Download Models
+
+-   **English to Indic (nepali):**
+    
+    ```bash
+    wget https://indictrans2-public.objectstore.e2enetworks.net/it2_distilled_ckpts/en-indic.zip
+    unzip en-indic.zip
+    
+    ```
+    
+-   **Indic to English (nepali):**
+    
+    ```bash
+    wget https://indictrans2-public.objectstore.e2enetworks.net/it2_distilled_ckpts/indic-en.zip
+    unzip indic-en.zip
+    
+    ```
+    
+
+## To, Run the Translation
+
 ```bash
-chmod +x run.sh
-./run.sh
+bash joint_translate.sh <source_file> <target_file> <source_lang> <target_lang> fairseq_model/
+
 ```
 
-This script will:
+### Example Commands
 
-Create a Conda environment, install dependencies, and start the Streamlit app.
-Usage
-Open Streamlit in your browser as prompted.
-Upload a PDF file.
-The app processes the PDF, generates a Nepali text corpus, and deletes intermediate images.
-Directory Structure
-Output/: Contains subdirectories for each processed PDF.
+-   **English to Nepali:**
+    
+    ```bash
+    bash joint_translate.sh input.txt output.txt eng_Latn npi_Deva fairseq_model/
+    
+    ```
+    
+-   **Nepali to English:**
+    
+    ```bash
+    bash joint_translate.sh input.txt output.txt npi_Deva eng_Latn fairseq_model/
+    
+    ```
+    
+
+## Language Codes
+
+-   English: `eng_Latn`
+-   Nepali: `npi_Deva`
+-   Hindi: `hin_Deva`
+
+
+For more details, visit [IndicTrans2 GitHub](https://github.com/AI4Bharat/IndicTrans2).
